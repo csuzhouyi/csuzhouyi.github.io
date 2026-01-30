@@ -1,234 +1,160 @@
 <template>
-  <div class="app">
-    <header class="header">
-      <h1>🎉 Vue3 GitHub Pages 项目1</h1>
-      <p class="subtitle">欢迎使用Vue3构建的GitHub Pages网站</p>
-    </header>
+  <el-container class="app-container">
+    <el-header class="app-header">
+      <div class="header-content">
+        <div class="logo">
+          <el-icon><FolderOpened /></el-icon>
+          <span class="logo-text">资源分享站</span>
+        </div>
+        <el-menu
+          :default-active="activeMenu"
+          mode="horizontal"
+          class="header-menu"
+          @select="handleMenuSelect"
+          router
+        >
+          <el-menu-item index="/">
+            <el-icon><House /></el-icon>
+            <span>首页</span>
+          </el-menu-item>
+          <el-menu-item index="/cloud-share">
+            <el-icon><Link /></el-icon>
+            <span>网盘链接</span>
+          </el-menu-item>
+          <el-menu-item index="/about">
+            <el-icon><InfoFilled /></el-icon>
+            <span>关于</span>
+          </el-menu-item>
+        </el-menu>
+      </div>
+    </el-header>
     
-    <main class="main">
-      <div class="card">
-        <h2>项目信息</h2>
-        <p>这是一个使用Vue3 + Vite构建的项目，可以直接部署到GitHub Pages。</p>
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="label">框架:</span>
-            <span class="value">Vue 3</span>
-          </div>
-          <div class="info-item">
-            <span class="label">构建工具:</span>
-            <span class="value">Vite</span>
-          </div>
-          <div class="info-item">
-            <span class="label">部署平台:</span>
-            <span class="value">GitHub Pages</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>功能特性</h2>
-        <ul class="feature-list">
-          <li>✨ 现代化的Vue3 Composition API</li>
-          <li>⚡ 快速的Vite构建工具</li>
-          <li>📦 自动化的GitHub Pages部署</li>
-          <li>🎨 响应式设计</li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <h2>计数器示例</h2>
-        <div class="counter">
-          <button @click="decrement" class="btn btn-secondary">-</button>
-          <span class="count">{{ count }}</span>
-          <button @click="increment" class="btn btn-primary">+</button>
-        </div>
-        <p class="counter-text">当前计数: {{ count }}</p>
-      </div>
-    </main>
-
-    <footer class="footer">
-      <p>© 2024 Vue3 GitHub Pages 项目</p>
-    </footer>
-  </div>
+    <el-main class="app-main">
+      <router-view />
+    </el-main>
+    
+    <el-footer class="app-footer">
+      <p>© 2024 资源分享站 | Powered by Vue3 + Element Plus</p>
+    </el-footer>
+  </el-container>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { House, Link, InfoFilled, FolderOpened } from '@element-plus/icons-vue'
 
-const count = ref(0)
+const route = useRoute()
 
-const increment = () => {
-  count.value++
-}
+const activeMenu = computed(() => {
+  return route.path
+})
 
-const decrement = () => {
-  count.value--
+const handleMenuSelect = (index) => {
+  // 路由会自动处理
 }
 </script>
 
 <style scoped>
-.app {
+.app-container {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-.header {
+.app-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 3rem 2rem;
-  text-align: center;
-}
-
-.header h1 {
-  margin: 0 0 1rem 0;
-  font-size: 2.5rem;
-  font-weight: 700;
-}
-
-.subtitle {
-  margin: 0;
-  font-size: 1.2rem;
-  opacity: 0.9;
-}
-
-.main {
-  flex: 1;
-  max-width: 1200px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 2rem;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-}
-
-.card {
-  background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
-}
-
-.card h2 {
-  margin: 0 0 1rem 0;
-  color: #333;
-  font-size: 1.5rem;
-}
-
-.info-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-.info-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #eee;
-}
-
-.label {
-  font-weight: 600;
-  color: #666;
-}
-
-.value {
-  color: #667eea;
-  font-weight: 500;
-}
-
-.feature-list {
-  list-style: none;
   padding: 0;
-  margin: 1rem 0 0 0;
+  height: 64px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.feature-list li {
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #eee;
-  color: #555;
-}
-
-.feature-list li:last-child {
-  border-bottom: none;
-}
-
-.counter {
+.header-content {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 1.5rem;
-  margin: 1.5rem 0;
+  justify-content: space-between;
+  height: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
 }
 
-.count {
-  font-size: 2rem;
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #667eea;
-  min-width: 60px;
-  text-align: center;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  font-size: 1.2rem;
-  border: none;
-  border-radius: 8px;
   cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s;
 }
 
-.btn-primary {
-  background: #667eea;
+.logo .el-icon {
+  font-size: 1.8rem;
+}
+
+.logo-text {
+  user-select: none;
+}
+
+.header-menu {
+  background: transparent;
+  border: none;
+}
+
+.header-menu :deep(.el-menu-item) {
+  color: rgba(255, 255, 255, 0.9);
+  border-bottom: 2px solid transparent;
+}
+
+.header-menu :deep(.el-menu-item:hover) {
+  background: rgba(255, 255, 255, 0.1);
   color: white;
 }
 
-.btn-primary:hover {
-  background: #5568d3;
-  transform: scale(1.05);
+.header-menu :deep(.el-menu-item.is-active) {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border-bottom-color: white;
 }
 
-.btn-secondary {
-  background: #e2e8f0;
-  color: #333;
-}
-
-.btn-secondary:hover {
-  background: #cbd5e0;
-  transform: scale(1.05);
-}
-
-.counter-text {
-  text-align: center;
-  color: #666;
-  margin-top: 1rem;
-}
-
-.footer {
-  background: #f7fafc;
+.app-main {
+  flex: 1;
   padding: 2rem;
+  background: #f5f7fa;
+  min-height: calc(100vh - 128px);
+}
+
+.app-footer {
+  background: #2c3e50;
+  color: white;
   text-align: center;
-  color: #666;
-  margin-top: 3rem;
+  padding: 1.5rem;
+  height: auto !important;
+}
+
+.app-footer p {
+  margin: 0;
+  font-size: 0.9rem;
 }
 
 @media (max-width: 768px) {
-  .header h1 {
-    font-size: 2rem;
+  .header-content {
+    flex-direction: column;
+    height: auto;
+    padding: 0.5rem;
   }
   
-  .main {
-    grid-template-columns: 1fr;
+  .logo {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .header-menu {
+    width: 100%;
+  }
+  
+  .app-main {
     padding: 1rem;
   }
 }
