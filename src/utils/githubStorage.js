@@ -14,16 +14,27 @@ const GIST_ID = import.meta.env.VITE_GIST_ID || ''
 const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN || ''
 const GIST_FILENAME = 'cloud-share-data.json'
 
-// 调试：检查环境变量是否加载（仅在开发环境）
-if (import.meta.env.DEV) {
-  console.log('环境变量检查:')
-  console.log('- VITE_GIST_ID:', GIST_ID ? `${GIST_ID.substring(0, 8)}...` : '未设置')
-  console.log('- VITE_GITHUB_TOKEN:', GITHUB_TOKEN ? `${GITHUB_TOKEN.substring(0, 8)}...` : '未设置')
-  if (!GITHUB_TOKEN) {
-    console.warn('⚠️ VITE_GITHUB_TOKEN 未设置，请检查 .env 文件')
+// 调试：检查环境变量是否加载
+console.log('环境变量检查:')
+console.log('- VITE_GIST_ID:', GIST_ID ? `${GIST_ID.substring(0, 8)}...` : '❌ 未设置')
+console.log('- VITE_GITHUB_TOKEN:', GITHUB_TOKEN ? `${GITHUB_TOKEN.substring(0, 8)}...` : '❌ 未设置')
+console.log('- 环境模式:', import.meta.env.MODE)
+console.log('- 是否为生产环境:', import.meta.env.PROD)
+
+if (!GITHUB_TOKEN) {
+  console.error('⚠️ VITE_GITHUB_TOKEN 未设置！')
+  if (import.meta.env.PROD) {
+    console.error('   生产环境：请检查 GitHub Secrets 中是否配置了 VITE_GITHUB_TOKEN')
+  } else {
+    console.error('   开发环境：请检查 .env 文件')
   }
-  if (!GIST_ID) {
-    console.warn('⚠️ VITE_GIST_ID 未设置，请检查 .env 文件')
+}
+if (!GIST_ID) {
+  console.error('⚠️ VITE_GIST_ID 未设置！')
+  if (import.meta.env.PROD) {
+    console.error('   生产环境：请检查 GitHub Secrets 中是否配置了 VITE_GIST_ID')
+  } else {
+    console.error('   开发环境：请检查 .env 文件')
   }
 }
 
