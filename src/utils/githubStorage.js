@@ -14,27 +14,18 @@ const GIST_ID = import.meta.env.VITE_GIST_ID || ''
 const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN || ''
 const GIST_FILENAME = 'cloud-share-data.json'
 
-// 调试：检查环境变量是否加载
-console.log('环境变量检查:')
-console.log('- VITE_GIST_ID:', GIST_ID ? `${GIST_ID.substring(0, 8)}...` : '❌ 未设置')
-console.log('- VITE_GITHUB_TOKEN:', GITHUB_TOKEN ? `${GITHUB_TOKEN.substring(0, 8)}...` : '❌ 未设置')
-console.log('- 环境模式:', import.meta.env.MODE)
-console.log('- 是否为生产环境:', import.meta.env.PROD)
-
-if (!GITHUB_TOKEN) {
-  console.error('⚠️ VITE_GITHUB_TOKEN 未设置！')
-  if (import.meta.env.PROD) {
-    console.error('   生产环境：请检查 GitHub Secrets 中是否配置了 VITE_GITHUB_TOKEN')
-  } else {
-    console.error('   开发环境：请检查 .env 文件')
+// 调试：检查环境变量是否加载（仅在开发环境）
+if (import.meta.env.DEV) {
+  console.log('环境变量检查:')
+  console.log('- VITE_GIST_ID:', GIST_ID ? `${GIST_ID.substring(0, 8)}...` : '❌ 未设置')
+  console.log('- VITE_GITHUB_TOKEN:', GITHUB_TOKEN ? '已设置' : '❌ 未设置') // 生产环境不显示 Token 前缀
+  console.log('- 环境模式:', import.meta.env.MODE)
+  
+  if (!GITHUB_TOKEN) {
+    console.error('⚠️ VITE_GITHUB_TOKEN 未设置！请检查 .env 文件')
   }
-}
-if (!GIST_ID) {
-  console.error('⚠️ VITE_GIST_ID 未设置！')
-  if (import.meta.env.PROD) {
-    console.error('   生产环境：请检查 GitHub Secrets 中是否配置了 VITE_GIST_ID')
-  } else {
-    console.error('   开发环境：请检查 .env 文件')
+  if (!GIST_ID) {
+    console.error('⚠️ VITE_GIST_ID 未设置！请检查 .env 文件')
   }
 }
 
@@ -50,7 +41,11 @@ export async function getGistData() {
     throw new Error('GitHub Gist 未配置，请检查 .env 文件中的 VITE_GIST_ID 和 VITE_GITHUB_TOKEN')
   }
 
-  console.log('正在获取 Gist 数据，GIST_ID:', GIST_ID)
+  // 仅在开发环境输出详细日志
+  if (import.meta.env.DEV) {
+    console.log('正在获取 Gist 数据，GIST_ID:', GIST_ID)
+  }
+  
   const response = await fetch(`${GITHUB_API_BASE}/gists/${GIST_ID}`, {
     headers: {
       'Authorization': `Bearer ${GITHUB_TOKEN}`,
@@ -58,7 +53,9 @@ export async function getGistData() {
     }
   })
 
-  console.log('API 响应状态:', response.status, response.statusText)
+  if (import.meta.env.DEV) {
+    console.log('API 响应状态:', response.status, response.statusText)
+  }
 
   if (!response.ok) {
     if (response.status === 404) {
@@ -67,29 +64,26 @@ export async function getGistData() {
     }
     if (response.status === 401) {
       const errorText = await response.text()
-      console.error('❌ 认证失败 (401)')
-      console.error('错误详情:', errorText)
+      // 仅在开发环境输出详细错误信息
+      if (import.meta.env.DEV) {
+        console.error('❌ 认证失败 (401)')
+        console.error('错误详情:', errorText)
+        console.error('🔍 排查建议:')
+        console.error('1. 检查 Token 是否已过期或被撤销')
+        console.error('2. 确认 Token 有 gist 权限')
+        console.error('3. 检查 GitHub Secrets 中的 VITE_GITHUB_TOKEN 是否正确')
+      }
       
       // 尝试解析错误信息
       let errorMessage = 'GitHub Token 无效或已过期'
-      let errorDetails = ''
       try {
         const errorJson = JSON.parse(errorText)
         if (errorJson.message) {
           errorMessage = `GitHub Token 错误: ${errorJson.message}`
-          errorDetails = errorJson.message
         }
       } catch (e) {
         // 不是 JSON 格式
       }
-      
-      // 提供详细的排查建议
-      console.error('🔍 排查建议:')
-      console.error('1. 检查 Token 是否已过期或被撤销')
-      console.error('2. 确认 Token 有 gist 权限')
-      console.error('3. 检查 GitHub Secrets 中的 VITE_GITHUB_TOKEN 是否正确')
-      console.error('4. 如果 Token 无效，请重新生成并更新 Secret')
-      console.error('5. 更新 Secret 后需要重新触发部署')
       
       throw new Error(errorMessage)
     }
@@ -104,17 +98,26 @@ export async function getGistData() {
   }
 
   const gist = await response.json()
-  console.log('Gist 获取成功:', gist.description)
+  
+  if (import.meta.env.DEV) {
+    console.log('Gist 获取成功:', gist.description)
+  }
   
   const file = gist.files[GIST_FILENAME]
   
   if (!file) {
-    console.warn(`Gist 中未找到文件 ${GIST_FILENAME}，返回空数据`)
+    if (import.meta.env.DEV) {
+      console.warn(`Gist 中未找到文件 ${GIST_FILENAME}，返回空数据`)
+    }
     return { links: [], lastUpdate: null }
   }
 
   const content = JSON.parse(file.content)
-  console.log('数据加载成功，链接数量:', content.links?.length || 0)
+  
+  if (import.meta.env.DEV) {
+    console.log('数据加载成功，链接数量:', content.links?.length || 0)
+  }
+  
   return content
 }
 
@@ -127,7 +130,9 @@ export async function saveGistData(data) {
     throw new Error('GitHub Gist 未配置，请检查 .env 文件中的 VITE_GIST_ID 和 VITE_GITHUB_TOKEN')
   }
 
-  console.log('正在保存数据到 Gist，GIST_ID:', GIST_ID)
+  if (import.meta.env.DEV) {
+    console.log('正在保存数据到 Gist，GIST_ID:', GIST_ID)
+  }
   
   // 先获取现有 Gist 验证配置
   const checkResponse = await fetch(`${GITHUB_API_BASE}/gists/${GIST_ID}`, {
@@ -137,30 +142,41 @@ export async function saveGistData(data) {
     }
   })
   
-  console.log('获取 Gist 响应状态:', checkResponse.status)
+  if (import.meta.env.DEV) {
+    console.log('获取 Gist 响应状态:', checkResponse.status)
+  }
   
   if (!checkResponse.ok) {
     if (checkResponse.status === 404) {
       const errorText = await checkResponse.text()
       console.error('Gist 不存在 (404):', errorText)
       throw new Error('Gist 不存在，请检查 GIST_ID 是否正确')
-    } else if (checkResponse.status === 401) {
-      const errorText = await checkResponse.text()
-      console.error('认证失败 (401):', errorText)
-      throw new Error('GitHub Token 无效或已过期')
-    } else if (checkResponse.status === 403) {
-      const errorText = await checkResponse.text()
-      console.error('权限不足 (403):', errorText)
-      throw new Error('权限不足，请确保 Token 有 gist 权限')
-    } else {
-      const errorText = await checkResponse.text()
-      console.error(`获取 Gist 失败 (${checkResponse.status}):`, errorText)
-      throw new Error(`获取 Gist 失败: ${checkResponse.status} - ${checkResponse.statusText}`)
+      } else if (checkResponse.status === 401) {
+        const errorText = await checkResponse.text()
+        if (import.meta.env.DEV) {
+          console.error('认证失败 (401):', errorText)
+        }
+        throw new Error('GitHub Token 无效或已过期')
+      } else if (checkResponse.status === 403) {
+        const errorText = await checkResponse.text()
+        if (import.meta.env.DEV) {
+          console.error('权限不足 (403):', errorText)
+        }
+        throw new Error('权限不足，请确保 Token 有 gist 权限')
+      } else {
+        const errorText = await checkResponse.text()
+        if (import.meta.env.DEV) {
+          console.error(`获取 Gist 失败 (${checkResponse.status}):`, errorText)
+        }
+        throw new Error(`获取 Gist 失败: ${checkResponse.status} - ${checkResponse.statusText}`)
+      }
     }
-  }
 
-  const gist = await checkResponse.json()
-  console.log('Gist 获取成功，准备更新')
+    const gist = await checkResponse.json()
+    
+    if (import.meta.env.DEV) {
+      console.log('Gist 获取成功，准备更新')
+    }
 
   const content = JSON.stringify({
     ...data,
@@ -188,7 +204,9 @@ export async function saveGistData(data) {
     body: JSON.stringify(body)
   })
 
-  console.log('保存 Gist 响应状态:', response.status)
+  if (import.meta.env.DEV) {
+    console.log('保存 Gist 响应状态:', response.status)
+  }
 
   if (!response.ok) {
     const errorText = await response.text()
@@ -200,12 +218,18 @@ export async function saveGistData(data) {
       // 如果不是 JSON，使用原始文本
       errorMessage = errorText || errorMessage
     }
-    console.error('保存失败:', errorMessage)
+    if (import.meta.env.DEV) {
+      console.error('保存失败:', errorMessage)
+    }
     throw new Error(errorMessage)
   }
 
   const result = await response.json()
-  console.log('数据保存成功，Gist ID:', result.id)
+  
+  if (import.meta.env.DEV) {
+    console.log('数据保存成功，Gist ID:', result.id)
+  }
+  
   return result
 }
 
