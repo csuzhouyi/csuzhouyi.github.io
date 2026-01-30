@@ -6,13 +6,26 @@
  * 1. 在 GitHub 创建一个 Personal Access Token (PAT)
  *    - Settings > Developer settings > Personal access tokens > Tokens (classic)
  *    - 勾选 gist 权限
- * 2. 将 GIST_ID 设置为你的 Gist ID（首次使用会自动创建）
- * 3. 在环境变量或配置中设置 GITHUB_TOKEN
+ * 2. 手动创建一个 Gist，并获取 GIST_ID
+ * 3. 在环境变量或配置中设置 GITHUB_TOKEN 和 GIST_ID
  */
 
 const GIST_ID = import.meta.env.VITE_GIST_ID || ''
 const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN || ''
 const GIST_FILENAME = 'cloud-share-data.json'
+
+// 调试：检查环境变量是否加载（仅在开发环境）
+if (import.meta.env.DEV) {
+  console.log('环境变量检查:')
+  console.log('- VITE_GIST_ID:', GIST_ID ? `${GIST_ID.substring(0, 8)}...` : '未设置')
+  console.log('- VITE_GITHUB_TOKEN:', GITHUB_TOKEN ? `${GITHUB_TOKEN.substring(0, 8)}...` : '未设置')
+  if (!GITHUB_TOKEN) {
+    console.warn('⚠️ VITE_GITHUB_TOKEN 未设置，请检查 .env 文件')
+  }
+  if (!GIST_ID) {
+    console.warn('⚠️ VITE_GIST_ID 未设置，请检查 .env 文件')
+  }
+}
 
 // GitHub API 基础 URL
 const GITHUB_API_BASE = 'https://api.github.com'
@@ -21,121 +34,145 @@ const GITHUB_API_BASE = 'https://api.github.com'
  * 获取 Gist 数据
  */
 export async function getGistData() {
+  // 必须同时提供 GIST_ID 和 GITHUB_TOKEN
   if (!GIST_ID || !GITHUB_TOKEN) {
-    console.warn('GitHub Gist 未配置，使用本地存储')
-    return getLocalData()
+    throw new Error('GitHub Gist 未配置，请检查 .env 文件中的 VITE_GIST_ID 和 VITE_GITHUB_TOKEN')
   }
 
-  try {
-    const response = await fetch(`${GITHUB_API_BASE}/gists/${GIST_ID}`, {
-      headers: {
-        'Authorization': `token ${GITHUB_TOKEN}`,
-        'Accept': 'application/vnd.github.v3+json'
-      }
-    })
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        // Gist 不存在，返回空数据
-        return { links: [], lastUpdate: null }
-      }
-      throw new Error(`GitHub API 错误: ${response.status}`)
+  console.log('正在获取 Gist 数据，GIST_ID:', GIST_ID)
+  const response = await fetch(`${GITHUB_API_BASE}/gists/${GIST_ID}`, {
+    headers: {
+      'Authorization': `Bearer ${GITHUB_TOKEN}`,
+      'Accept': 'application/vnd.github.v3+json'
     }
+  })
 
-    const gist = await response.json()
-    const file = gist.files[GIST_FILENAME]
-    
-    if (!file) {
+  console.log('API 响应状态:', response.status, response.statusText)
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      console.warn('Gist 不存在 (404)，返回空数据')
       return { links: [], lastUpdate: null }
     }
-
-    const content = JSON.parse(file.content)
-    return content
-  } catch (error) {
-    console.error('获取 Gist 数据失败:', error)
-    // 失败时回退到本地存储
-    return getLocalData()
+    if (response.status === 401) {
+      const errorText = await response.text()
+      console.error('认证失败 (401)，请检查 Token 是否正确:', errorText)
+      throw new Error('GitHub Token 无效或已过期，请检查 VITE_GITHUB_TOKEN')
+    }
+    if (response.status === 403) {
+      const errorText = await response.text()
+      console.error('权限不足 (403):', errorText)
+      throw new Error('权限不足，请确保 Token 有 gist 权限')
+    }
+    const errorText = await response.text()
+    console.error(`GitHub API 错误 (${response.status}):`, errorText)
+    throw new Error(`GitHub API 错误: ${response.status} - ${response.statusText}`)
   }
+
+  const gist = await response.json()
+  console.log('Gist 获取成功:', gist.description)
+  
+  const file = gist.files[GIST_FILENAME]
+  
+  if (!file) {
+    console.warn(`Gist 中未找到文件 ${GIST_FILENAME}，返回空数据`)
+    return { links: [], lastUpdate: null }
+  }
+
+  const content = JSON.parse(file.content)
+  console.log('数据加载成功，链接数量:', content.links?.length || 0)
+  return content
 }
 
 /**
  * 保存数据到 Gist
  */
 export async function saveGistData(data) {
+  // 必须同时提供 GIST_ID 和 GITHUB_TOKEN
   if (!GIST_ID || !GITHUB_TOKEN) {
-    console.warn('GitHub Gist 未配置，使用本地存储')
-    saveLocalData(data)
-    return
+    throw new Error('GitHub Gist 未配置，请检查 .env 文件中的 VITE_GIST_ID 和 VITE_GITHUB_TOKEN')
   }
 
-  try {
-    // 先获取现有 Gist（如果存在）
-    let gist = null
+  console.log('正在保存数据到 Gist，GIST_ID:', GIST_ID)
+  
+  // 先获取现有 Gist 验证配置
+  const checkResponse = await fetch(`${GITHUB_API_BASE}/gists/${GIST_ID}`, {
+    headers: {
+      'Authorization': `Bearer ${GITHUB_TOKEN}`,
+      'Accept': 'application/vnd.github.v3+json'
+    }
+  })
+  
+  console.log('获取 Gist 响应状态:', checkResponse.status)
+  
+  if (!checkResponse.ok) {
+    if (checkResponse.status === 404) {
+      const errorText = await checkResponse.text()
+      console.error('Gist 不存在 (404):', errorText)
+      throw new Error('Gist 不存在，请检查 GIST_ID 是否正确')
+    } else if (checkResponse.status === 401) {
+      const errorText = await checkResponse.text()
+      console.error('认证失败 (401):', errorText)
+      throw new Error('GitHub Token 无效或已过期')
+    } else if (checkResponse.status === 403) {
+      const errorText = await checkResponse.text()
+      console.error('权限不足 (403):', errorText)
+      throw new Error('权限不足，请确保 Token 有 gist 权限')
+    } else {
+      const errorText = await checkResponse.text()
+      console.error(`获取 Gist 失败 (${checkResponse.status}):`, errorText)
+      throw new Error(`获取 Gist 失败: ${checkResponse.status} - ${checkResponse.statusText}`)
+    }
+  }
+
+  const gist = await checkResponse.json()
+  console.log('Gist 获取成功，准备更新')
+
+  const content = JSON.stringify({
+    ...data,
+    lastUpdate: new Date().toISOString()
+  }, null, 2)
+
+  const body = {
+    description: '网盘链接分享数据',
+    public: false,
+    files: {
+      [GIST_FILENAME]: {
+        content: content
+      }
+    }
+  }
+
+  // 更新现有的 Gist
+  const response = await fetch(`${GITHUB_API_BASE}/gists/${GIST_ID}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${GITHUB_TOKEN}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  })
+
+  console.log('保存 Gist 响应状态:', response.status)
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    let errorMessage = `保存失败: ${response.status} - ${response.statusText}`
     try {
-      const response = await fetch(`${GITHUB_API_BASE}/gists/${GIST_ID}`, {
-        headers: {
-          'Authorization': `token ${GITHUB_TOKEN}`,
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      })
-      if (response.ok) {
-        gist = await response.json()
-      }
+      const errorJson = JSON.parse(errorText)
+      errorMessage = errorJson.message || errorMessage
     } catch (e) {
-      // Gist 不存在，将创建新的
+      // 如果不是 JSON，使用原始文本
+      errorMessage = errorText || errorMessage
     }
-
-    const content = JSON.stringify({
-      ...data,
-      lastUpdate: new Date().toISOString()
-    }, null, 2)
-
-    const body = {
-      description: '网盘链接分享数据',
-      public: false,
-      files: {
-        [GIST_FILENAME]: {
-          content: content
-        }
-      }
-    }
-
-    // 如果 Gist 已存在，更新它；否则创建新的
-    const url = gist 
-      ? `${GITHUB_API_BASE}/gists/${GIST_ID}`
-      : `${GITHUB_API_BASE}/gists`
-    
-    const method = gist ? 'PATCH' : 'POST'
-
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Authorization': `token ${GITHUB_TOKEN}`,
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(`保存失败: ${error.message || response.statusText}`)
-    }
-
-    const result = await response.json()
-    
-    // 如果是新创建的 Gist，保存 ID 到本地存储
-    if (!GIST_ID && result.id) {
-      localStorage.setItem('gist_id', result.id)
-    }
-
-    return result
-  } catch (error) {
-    console.error('保存 Gist 数据失败:', error)
-    // 失败时回退到本地存储
-    saveLocalData(data)
-    throw error
+    console.error('保存失败:', errorMessage)
+    throw new Error(errorMessage)
   }
+
+  const result = await response.json()
+  console.log('数据保存成功，Gist ID:', result.id)
+  return result
 }
 
 /**
@@ -154,29 +191,3 @@ export async function incrementDownloadCount(linkId) {
   return 0
 }
 
-// ========== 本地存储备用方案 ==========
-
-const STORAGE_KEY = 'cloud_share_links'
-
-function getLocalData() {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      return JSON.parse(stored)
-    }
-  } catch (error) {
-    console.error('读取本地数据失败:', error)
-  }
-  return { links: [], lastUpdate: null }
-}
-
-function saveLocalData(data) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      ...data,
-      lastUpdate: new Date().toISOString()
-    }))
-  } catch (error) {
-    console.error('保存本地数据失败:', error)
-  }
-}

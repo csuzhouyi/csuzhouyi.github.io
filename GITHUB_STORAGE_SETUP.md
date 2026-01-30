@@ -106,11 +106,93 @@
 
 如果数据不需要保密，可以使用公开的 Gist，但这样任何人都可以访问和修改数据。
 
-### 3. 首次使用
+### 3. 手动创建 Gist 并获取 GIST_ID
 
-1. 启动项目后，首次添加链接时会自动创建 Gist
-2. Gist ID 会自动保存到浏览器的 localStorage
-3. 如果需要多人共享，需要将 Gist ID 配置到环境变量中
+#### 步骤一：创建 Gist
+
+1. **访问 GitHub Gists**：
+   - 登录 GitHub
+   - 访问 https://gist.github.com
+   - 或者点击右上角头像 > **Your gists**
+
+2. **创建新的 Gist**：
+   - 点击页面右上角的 **+** 或 **New gist** 按钮
+   - **Filename**（文件名）：输入 `cloud-share-data.json`
+   - **Description**（描述）：输入 `网盘链接分享数据`
+   - **Content**（内容）：输入以下初始内容：
+     ```json
+     {
+       "links": [],
+       "lastUpdate": null,
+       "version": "1.0.0"
+     }
+     ```
+   - **选择可见性**：建议选择 **Create secret gist**（创建私密 Gist）
+   - 点击 **Create secret gist** 或 **Create public gist**
+
+3. **获取 GIST_ID**：
+   - 创建成功后，查看浏览器地址栏
+   - URL 格式为：`https://gist.github.com/用户名/GIST_ID`
+   - 例如：`https://gist.github.com/csuzhouyi/abc123def456789...`
+   - `abc123def456789...` 就是你的 GIST_ID（通常是一串 32 位的字符串）
+
+#### 方法二：从已有 Gist 获取 ID
+
+如果你已经有 Gist，可以通过以下方式查看 ID：
+
+1. **访问 GitHub Gists**：
+   - 登录 GitHub
+   - 访问 https://gist.github.com
+   - 或者点击右上角头像 > **Your gists**
+
+2. **找到你的 Gist**：
+   - 查找名为 "网盘链接分享数据" 的 Gist
+   - 或者查找包含 `cloud-share-data.json` 文件的 Gist
+
+3. **获取 GIST_ID**：
+   - 打开 Gist 页面
+   - 查看浏览器地址栏，URL 格式为：`https://gist.github.com/用户名/GIST_ID`
+   - 例如：`https://gist.github.com/csuzhouyi/abc123def456...`
+   - `abc123def456...` 就是你的 GIST_ID
+
+#### 方法三：通过 API 查看
+
+如果你有多个 Gist，可以通过 API 查看：
+
+1. 访问：`https://api.github.com/gists`
+2. 在请求头中添加：`Authorization: token 你的Token`
+3. 查找 `description` 为 "网盘链接分享数据" 的 Gist
+4. 复制该 Gist 的 `id` 字段
+
+### 4. 配置 GIST_ID
+
+获取到 GIST_ID 后：
+
+1. **本地开发**：更新 `.env` 文件
+   ```env
+   VITE_GITHUB_TOKEN=你的Token
+   VITE_GIST_ID=你的GIST_ID
+   ```
+
+2. **生产环境**：更新 GitHub Secrets
+   - 仓库 Settings > Secrets and variables > Actions
+   - 添加或更新 `GIST_ID` Secret
+
+### 5. 配置完成后的使用流程
+
+1. **确保已配置**：
+   - ✅ 已创建 GitHub Personal Access Token
+   - ✅ 已手动创建 Gist 并获取 GIST_ID
+   - ✅ 已在 `.env` 文件或 GitHub Secrets 中配置了 `VITE_GITHUB_TOKEN` 和 `VITE_GIST_ID`
+
+2. **启动项目**：
+   - 运行 `pnpm run dev` 启动开发服务器
+   - 或部署到 GitHub Pages
+
+3. **使用功能**：
+   - 添加链接会自动保存到 GitHub Gist
+   - 所有用户共享同一份数据
+   - 下载统计会实时更新
 
 ## 工作原理
 
