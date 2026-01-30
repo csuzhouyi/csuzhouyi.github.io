@@ -153,7 +153,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Download, Delete } from '@element-plus/icons-vue'
-import { getGistData, saveGistData, incrementDownloadCount } from '../utils/githubStorage'
+// 使用 Supabase 数据库（通过 Vercel Serverless Functions）
+// 数据存储在 Supabase，完全脱离 GitHub
+import { getGistData, createLink, updateLink, deleteLink, incrementDownloadCount } from '../utils/dataApi'
 
 // 数据
 const links = ref([])
@@ -207,7 +209,7 @@ const totalDownloads = computed(() => {
   return links.value.reduce((sum, link) => sum + link.downloadCount, 0)
 })
 
-// 从 GitHub Gists 加载数据
+// 从 Supabase 加载数据
 const loadLinks = async () => {
   loading.value = true
   try {
@@ -219,71 +221,21 @@ const loadLinks = async () => {
     }
   } catch (error) {
     console.error('加载数据失败:', error)
-    
-    // 根据错误类型显示不同的提示
-    let errorMessage = '加载数据失败'
-    if (error.message.includes('未配置')) {
-      errorMessage = 'GitHub Gist 未配置，请检查 .env 文件中的 VITE_GIST_ID 和 VITE_GITHUB_TOKEN'
-    } else if (error.message.includes('Token 无效') || error.message.includes('401')) {
-      errorMessage = 'GitHub Token 无效或已过期，请检查 .env 文件中的 VITE_GITHUB_TOKEN'
-    } else if (error.message.includes('权限不足') || error.message.includes('403')) {
-      errorMessage = 'Token 权限不足，请确保 Token 有 gist 权限'
-    } else if (error.message.includes('Gist 不存在') || error.message.includes('404')) {
-      // 404 时返回空数组，不显示错误
-      links.value = []
-      loading.value = false
-      return
-    } else {
-      errorMessage = error.message || '加载数据失败'
-    }
-    
     ElMessage.error({
-      message: errorMessage,
+      message: error.message || '加载数据失败，请检查 API 配置',
       duration: 5000,
       showClose: true
     })
-    
-    // 设置空数组，不显示数据
     links.value = []
   } finally {
     loading.value = false
   }
 }
 
-// 保存数据到 GitHub Gists
+// 保存数据（已废弃，现在使用单独的 CRUD 操作）
 const saveLinks = async () => {
-  try {
-    const data = {
-      links: links.value,
-      version: '1.0.0'
-    }
-    await saveGistData(data)
-  } catch (error) {
-    console.error('保存数据失败:', error)
-    
-    // 根据错误类型显示不同的提示
-    let errorMessage = '保存数据失败'
-    if (error.message.includes('未配置')) {
-      errorMessage = 'GitHub Gist 未配置，请检查 .env 文件中的 VITE_GIST_ID 和 VITE_GITHUB_TOKEN'
-    } else if (error.message.includes('Token 无效') || error.message.includes('401')) {
-      errorMessage = 'GitHub Token 无效或已过期，请检查 .env 文件中的 VITE_GITHUB_TOKEN'
-    } else if (error.message.includes('权限不足') || error.message.includes('403')) {
-      errorMessage = 'Token 权限不足，请确保 Token 有 gist 权限'
-    } else if (error.message.includes('Gist 不存在') || error.message.includes('404')) {
-      errorMessage = 'Gist 不存在，请检查 .env 文件中的 VITE_GIST_ID'
-    } else {
-      errorMessage = error.message || '保存数据失败'
-    }
-    
-    ElMessage.error({
-      message: errorMessage,
-      duration: 5000,
-      showClose: true
-    })
-    
-    // 抛出错误，让调用者知道操作失败
-    throw error
-  }
+  // 这个函数保留用于向后兼容，但实际不再使用
+  // 现在使用 createLink, updateLink, deleteLink 等单独操作
 }
 
 // 搜索处理
@@ -294,19 +246,18 @@ const handleSearch = () => {
 // 下载处理
 const handleDownload = async (link) => {
   try {
-    // 增加下载次数（使用 GitHub API）
-    await incrementDownloadCount(link.id)
-    // 重新加载数据以获取最新统计
-    await loadLinks()
+    // 增加下载次数
+    const newCount = await incrementDownloadCount(link.id)
+    // 更新本地数据
+    link.downloadCount = newCount
     
     // 打开链接
     window.open(link.url, '_blank')
     
     ElMessage.success('已打开链接，下载次数已更新')
   } catch (error) {
-    // 如果 API 失败，仍然打开链接，但只更新本地
-    link.downloadCount = (link.downloadCount || 0) + 1
-    saveLinks()
+    console.error('更新下载次数失败:', error)
+    // 如果 API 失败，仍然打开链接
     window.open(link.url, '_blank')
     ElMessage.warning('统计更新失败，但链接已打开')
   }
@@ -323,11 +274,17 @@ const handleDelete = async (id) => {
       type: 'warning'
     }
   ).then(async () => {
-    const index = links.value.findIndex(link => link.id === id)
-    if (index > -1) {
-      links.value.splice(index, 1)
-      await saveLinks()
+    try {
+      await deleteLink(id)
+      // 从本地列表中移除
+      const index = links.value.findIndex(link => link.id === id)
+      if (index > -1) {
+        links.value.splice(index, 1)
+      }
       ElMessage.success('删除成功')
+    } catch (error) {
+      console.error('删除失败:', error)
+      ElMessage.error(error.message || '删除失败')
     }
   }).catch(() => {
     // 用户取消
@@ -341,44 +298,58 @@ const handleSubmit = async () => {
   try {
     await formRef.value.validate(async (valid) => {
       if (valid) {
-        if (editingLink.value) {
-          // 编辑模式
-          const index = links.value.findIndex(link => link.id === editingLink.value.id)
-          if (index > -1) {
-            links.value[index] = {
-              ...links.value[index],
-              ...linkForm.value
+        try {
+          if (editingLink.value) {
+            // 编辑模式
+            const updatedLink = await updateLink(editingLink.value.id, {
+              name: linkForm.value.name,
+              url: linkForm.value.url,
+              code: linkForm.value.code,
+              description: linkForm.value.description,
+              tags: linkForm.value.tags
+            })
+            // 更新本地数据
+            const index = links.value.findIndex(link => link.id === editingLink.value.id)
+            if (index > -1) {
+              links.value[index] = {
+                ...links.value[index],
+                ...linkForm.value
+              }
             }
+            ElMessage.success('编辑成功')
+          } else {
+            // 添加模式
+            const newLink = await createLink({
+              name: linkForm.value.name,
+              url: linkForm.value.url,
+              code: linkForm.value.code,
+              description: linkForm.value.description,
+              tags: linkForm.value.tags
+            })
+            // 转换数据格式并添加到列表
+            links.value.unshift({
+              id: newLink.id,
+              name: newLink.name,
+              url: newLink.url,
+              code: newLink.code,
+              description: newLink.description,
+              tags: newLink.tags || [],
+              downloadCount: newLink.download_count || 0,
+              createTime: new Date(newLink.create_time).toLocaleString('zh-CN')
+            })
+            ElMessage.success('添加成功')
           }
-        } else {
-          // 添加模式
-          const newLink = {
-            id: Date.now(),
-            ...linkForm.value,
-            downloadCount: 0,
-            createTime: new Date().toLocaleString('zh-CN')
-          }
-          links.value.unshift(newLink)
+          
+          resetForm()
+          showAddDialog.value = false
+        } catch (error) {
+          console.error('保存失败:', error)
+          ElMessage.error(error.message || '保存失败')
         }
-        
-        // 保存到 GitHub Gist
-        await saveLinks()
-        
-        // 保存成功后才显示成功消息和关闭对话框
-        if (editingLink.value) {
-          ElMessage.success('编辑成功')
-        } else {
-          ElMessage.success('添加成功')
-        }
-        
-        resetForm()
-        showAddDialog.value = false
       }
     })
   } catch (error) {
-    // saveLinks 中的错误已经在函数内部处理并显示消息
-    // 这里不需要再次显示错误，但可以阻止对话框关闭
-    console.error('提交表单失败:', error)
+    console.error('表单验证失败:', error)
   }
 }
 

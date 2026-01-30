@@ -1,6 +1,23 @@
-# Vue3 GitHub Pages 项目
+# Vue3 项目 - Vercel 部署
 
-这是一个使用 Vue3 + Vite 构建的项目，可以直接部署到 GitHub Pages。
+这是一个使用 Vue3 + Vite + Element Plus 构建的多页面网站，**推荐部署到 Vercel**（也可以部署到 GitHub Pages）。
+
+## 🚀 部署方式：Vercel + Supabase
+
+**技术栈**：
+- ✅ **Vercel**：部署平台（完全免费）
+- ✅ **Supabase**：PostgreSQL 数据库（完全免费，500MB）
+- ✅ **GitHub**：仅用于存储源代码
+
+**为什么选择这个方案？**
+- ✅ 完全免费（Vercel + Supabase 都免费）
+- ✅ 数据安全（数据库在后端，不会泄露）
+- ✅ 性能优秀（全球 CDN）
+- ✅ 易于维护（无需管理服务器）
+
+**快速开始**：
+1. **设置 Supabase**：查看 [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
+2. **部署到 Vercel**：查看 [VERCEL_QUICK_START.md](./VERCEL_QUICK_START.md)
 
 ## 🚀 快速开始
 
@@ -32,39 +49,31 @@ pnpm run build
 pnpm run preview
 ```
 
-## 📦 部署到 GitHub Pages
+## 📦 部署步骤
 
-### 方法一：使用 GitHub Actions（推荐）
+### 第一步：设置 Supabase 数据库
 
-1. 确保你的仓库名称是 `username.github.io` 格式
-2. 在 `vite.config.js` 中，将 `base` 设置为你的仓库路径：
-   ```js
-   base: '/csuzhouyi.github.io/',
-   ```
-   如果你的仓库名就是 `username.github.io`，可以设置为 `base: '/'`
+1. 访问 https://supabase.com，创建免费项目
+2. 创建 `links` 表（SQL 脚本在 [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)）
+3. 获取 API 密钥（Project URL 和 anon key）
 
-3. 推送代码到 `master` 分支，GitHub Actions 会自动构建并部署
+**详细步骤**：查看 [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
 
-4. 在仓库设置中启用 GitHub Pages：
-   - 进入 Settings > Pages
-   - Source 选择 `gh-pages` 分支
-   - 保存后等待几分钟，你的网站就会在 `https://username.github.io` 上线
+### 第二步：部署到 Vercel
 
-### 方法二：手动部署
+1. 访问 https://vercel.com，使用 GitHub 登录
+2. 点击 "Add New Project"，导入你的仓库
+3. 配置环境变量：
+   - `SUPABASE_URL`: 你的 Supabase Project URL
+   - `SUPABASE_ANON_KEY`: 你的 Supabase anon key
+   - `VITE_API_BASE_URL`: 部署后的 Vercel 域名（部署后更新）
+4. 点击 Deploy，完成！
 
-1. 构建项目：
-   ```bash
-   pnpm run build
-   ```
+**详细步骤**：查看 [VERCEL_QUICK_START.md](./VERCEL_QUICK_START.md)
 
-2. 进入 `dist` 目录，初始化 git 并推送到 `gh-pages` 分支：
-   ```bash
-   cd dist
-   git init
-   git add -A
-   git commit -m 'deploy'
-   git push -f git@github.com:username/username.github.io.git master:gh-pages
-   ```
+### 第三步：更新 API URL
+
+部署完成后，更新 `VITE_API_BASE_URL` 环境变量为你的 Vercel 域名，然后重新部署。
 
 ## 📁 项目结构
 
@@ -84,8 +93,12 @@ pnpm run preview
 
 - **Vue 3** - 渐进式 JavaScript 框架
 - **Vite** - 下一代前端构建工具
+- **Element Plus** - Vue 3 UI 组件库
+- **Vue Router** - Vue.js 官方路由管理器
 - **pnpm** - 快速、节省磁盘空间的包管理器
-- **GitHub Pages** - 静态网站托管服务
+- **Vercel** - 部署平台（Serverless Functions）
+- **Supabase** - PostgreSQL 数据库（完全免费）
+- **GitHub** - 仅用于存储源代码
 
 ## 📝 注意事项
 
