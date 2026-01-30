@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="/vite.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue3 GitHub Pages</title>
+    <script>
+      // GitHub Pages SPA 路由修复
+      // 当直接访问子路由时，GitHub Pages 会返回 404
+      // 这个脚本会将所有请求重定向到 index.html，让 Vue Router 处理路由
+      var path = window.location.pathname;
+      var search = window.location.search;
+      var hash = window.location.hash;
+      
+      // 如果路径不是根路径，重定向到 index.html
+      if (path !== '/' && !path.endsWith('.html')) {
+        var newPath = '/index.html' + (search || '') + (hash || '');
+        window.location.replace(newPath);
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

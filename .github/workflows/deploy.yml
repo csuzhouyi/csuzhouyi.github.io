@@ -32,6 +32,9 @@ jobs:
         env:
           VITE_GITHUB_TOKEN: ${{ secrets.VITE_GITHUB_TOKEN }}
           VITE_GIST_ID: ${{ secrets.VITE_GIST_ID }}
+      
+      - name: Copy index.html to 404.html for SPA routing
+        run: cp dist/index.html dist/404.html
         
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
