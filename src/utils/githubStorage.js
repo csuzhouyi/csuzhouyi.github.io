@@ -67,8 +67,23 @@ export async function getGistData() {
     }
     if (response.status === 401) {
       const errorText = await response.text()
-      console.error('认证失败 (401)，请检查 Token 是否正确:', errorText)
-      throw new Error('GitHub Token 无效或已过期，请检查 VITE_GITHUB_TOKEN')
+      console.error('认证失败 (401)')
+      console.error('错误详情:', errorText)
+      console.error('Token 前缀:', GITHUB_TOKEN.substring(0, 10))
+      console.error('Token 长度:', GITHUB_TOKEN.length)
+      
+      // 尝试解析错误信息
+      let errorMessage = 'GitHub Token 无效或已过期'
+      try {
+        const errorJson = JSON.parse(errorText)
+        if (errorJson.message) {
+          errorMessage = `GitHub Token 错误: ${errorJson.message}`
+        }
+      } catch (e) {
+        // 不是 JSON 格式
+      }
+      
+      throw new Error(errorMessage)
     }
     if (response.status === 403) {
       const errorText = await response.text()
