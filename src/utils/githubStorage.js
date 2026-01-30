@@ -67,21 +67,29 @@ export async function getGistData() {
     }
     if (response.status === 401) {
       const errorText = await response.text()
-      console.error('认证失败 (401)')
+      console.error('❌ 认证失败 (401)')
       console.error('错误详情:', errorText)
-      console.error('Token 前缀:', GITHUB_TOKEN.substring(0, 10))
-      console.error('Token 长度:', GITHUB_TOKEN.length)
       
       // 尝试解析错误信息
       let errorMessage = 'GitHub Token 无效或已过期'
+      let errorDetails = ''
       try {
         const errorJson = JSON.parse(errorText)
         if (errorJson.message) {
           errorMessage = `GitHub Token 错误: ${errorJson.message}`
+          errorDetails = errorJson.message
         }
       } catch (e) {
         // 不是 JSON 格式
       }
+      
+      // 提供详细的排查建议
+      console.error('🔍 排查建议:')
+      console.error('1. 检查 Token 是否已过期或被撤销')
+      console.error('2. 确认 Token 有 gist 权限')
+      console.error('3. 检查 GitHub Secrets 中的 VITE_GITHUB_TOKEN 是否正确')
+      console.error('4. 如果 Token 无效，请重新生成并更新 Secret')
+      console.error('5. 更新 Secret 后需要重新触发部署')
       
       throw new Error(errorMessage)
     }
