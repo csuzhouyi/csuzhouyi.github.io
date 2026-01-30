@@ -1,6 +1,6 @@
 @echo off
 echo 正在构建项目...
-call npm run build
+call pnpm run build
 
 echo 进入 dist 目录...
 cd dist

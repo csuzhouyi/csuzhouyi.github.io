@@ -1,7 +1,7 @@
 <template>
   <div class="app">
     <header class="header">
-      <h1>🎉 Vue3 GitHub Pages 项目</h1>
+      <h1>🎉 Vue3 GitHub Pages 项目1</h1>
       <p class="subtitle">欢迎使用Vue3构建的GitHub Pages网站</p>
     </header>
     

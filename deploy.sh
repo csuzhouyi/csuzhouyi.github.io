@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 构建项目
-npm run build
+pnpm run build
 
 # 进入 dist 目录
 cd dist

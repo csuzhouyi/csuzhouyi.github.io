@@ -7,13 +7,13 @@
 ### 安装依赖
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 本地开发
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 项目将在 `http://localhost:5173` 启动。
@@ -21,7 +21,7 @@ npm run dev
 ### 构建生产版本
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 构建产物将输出到 `dist` 目录。
@@ -29,7 +29,7 @@ npm run build
 ### 预览生产构建
 
 ```bash
-npm run preview
+pnpm run preview
 ```
 
 ## 📦 部署到 GitHub Pages
@@ -43,7 +43,7 @@ npm run preview
    ```
    如果你的仓库名就是 `username.github.io`，可以设置为 `base: '/'`
 
-3. 推送代码到 `main` 分支，GitHub Actions 会自动构建并部署
+3. 推送代码到 `master` 分支，GitHub Actions 会自动构建并部署
 
 4. 在仓库设置中启用 GitHub Pages：
    - 进入 Settings > Pages
@@ -54,7 +54,7 @@ npm run preview
 
 1. 构建项目：
    ```bash
-   npm run build
+   pnpm run build
    ```
 
 2. 进入 `dist` 目录，初始化 git 并推送到 `gh-pages` 分支：
@@ -63,7 +63,7 @@ npm run preview
    git init
    git add -A
    git commit -m 'deploy'
-   git push -f git@github.com:username/username.github.io.git main:gh-pages
+   git push -f git@github.com:username/username.github.io.git master:gh-pages
    ```
 
 ## 📁 项目结构
@@ -84,6 +84,7 @@ npm run preview
 
 - **Vue 3** - 渐进式 JavaScript 框架
 - **Vite** - 下一代前端构建工具
+- **pnpm** - 快速、节省磁盘空间的包管理器
 - **GitHub Pages** - 静态网站托管服务
 
 ## 📝 注意事项
